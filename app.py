@@ -9,7 +9,6 @@ ACCESS_KEY = os.environ.get('CF_ACCESS_KEY')
 SECRET_KEY = os.environ.get('CF_SECRET_KEY')
 BUCKET_NAME = os.environ.get('CF_BUCKET_NAME', 'my-files')
 
-# สร้าง Client เชื่อมต่อ Cloudflare R2
 s3_client = None
 if ACCOUNT_ID and ACCESS_KEY and SECRET_KEY:
     s3_client = boto3.client(
@@ -26,73 +25,144 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cloud Private Storage</title>
+    <title>[SYSTEM_TERMINAL] Cloud Drive</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; padding: 16px; background-color: #f4f6f8; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-        h2 { margin-top: 0; font-size: 1.2rem; color: #111; }
-        .form-group { margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
-        input[type="file"], input[type="text"] { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 8px; }
-        button { background-color: #007aff; color: white; border: none; padding: 10px 15px; border-radius: 8px; font-weight: bold; width: 100%; margin-top: 8px; cursor: pointer; }
-        button.create-btn { background-color: #34c759; }
-        .file-list { list-style: none; padding: 0; margin-top: 20px; }
-        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f9f9f9; margin-bottom: 8px; border-radius: 8px; user-select: none; -webkit-user-select: none; }
-        .file-item a { text-decoration: none; color: #007aff; font-weight: 500; word-break: break-all; }
-        .folder-link { color: #ff9500 !important; font-weight: bold !important; }
-        .breadcrumb { margin-bottom: 15px; font-size: 0.9rem; }
-        .breadcrumb a { color: #007aff; text-decoration: none; }
+        * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
+        body { background-color: #080b10; margin: 0; padding: 16px; color: #00ff66; text-shadow: 0 0 4px rgba(0,255,102,0.4); }
+        .card { background: #0d1117; border: 1px solid #00ff66; border-radius: 8px; padding: 20px; max-width: 550px; margin: 0 auto; box-shadow: 0 0 15px rgba(0,255,102,0.15); }
+        .header { border-bottom: 1px solid #00ff66; padding-bottom: 12px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; }
+        .header h2 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: #00ff66; }
+        .status-dot { height: 10px; width: 10px; background-color: #00ff66; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #00ff66; }
+        
+        .breadcrumb { font-size: 0.85rem; margin-bottom: 16px; color: #00b347; }
+        .breadcrumb a { color: #00ff66; text-decoration: none; border-bottom: 1px dashed #00ff66; }
+
+        .section-box { background: #040609; border: 1px solid #005522; border-radius: 6px; padding: 14px; margin-bottom: 16px; }
+        .input-style { width: 100%; padding: 10px; border: 1px solid #00aa44; border-radius: 4px; font-size: 0.85rem; background: #000; color: #00ff66; margin-bottom: 10px; }
+        .input-style:focus { outline: none; border-color: #00ff66; box-shadow: 0 0 8px rgba(0,255,102,0.5); }
+        
+        .btn { border: 1px solid #00ff66; border-radius: 4px; padding: 10px; font-size: 0.85rem; font-weight: bold; width: 100%; cursor: pointer; transition: all 0.2s; background: #002200; color: #00ff66; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn:hover { background: #00ff66; color: #000; box-shadow: 0 0 10px #00ff66; }
+        .btn-success { border-color: #ffb700; color: #ffb700; background: #221800; }
+        .btn-success:hover { background: #ffb700; color: #000; box-shadow: 0 0 10px #ffb700; }
+
+        /* Cyber Progress Bar */
+        .progress-container { display: none; margin-top: 12px; background: #000; border: 1px solid #00ff66; border-radius: 4px; padding: 2px; position: relative; height: 20px; }
+        .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s; }
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.75rem; color: #000; font-weight: bold; line-height: 20px; text-shadow: none; top:0; }
+
+        .file-list { list-style: none; padding: 0; margin: 0; }
+        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: #000; border: 1px solid #003311; border-radius: 4px; margin-bottom: 6px; }
+        .file-item:hover { border-color: #00ff66; }
+        .file-info { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #00ff66; flex-grow: 1; overflow: hidden; }
+        .folder-link { color: #ffb700 !important; }
+        .file-name { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        
+        .terminal-log { font-size: 0.75rem; color: #00aa44; margin-top: 15px; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>☁️ Cloud Storage (R2 Permanent)</h2>
+    <div class="card">
+        <div class="header">
+            <h2><i class="fa-solid fa-terminal"></i> R2_VAULT // ROOT</h2>
+            <span class="status-dot"></span>
+        </div>
         
         <div class="breadcrumb">
-            <a href="{{ url_for('index') }}">หน้าแรก</a>
+            SYSTEM_PATH: <a href="{{ url_for('index') }}">/ROOT</a>
             {% if current_dir %}
                 / {{ current_dir }}
             {% endif %}
         </div>
 
-        <div class="form-group">
-            <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+        <!-- UPLOAD SECTION -->
+        <div class="section-box">
+            <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
                 <input type="hidden" name="subpath" value="{{ current_dir }}">
-                <input type="file" name="file" required>
-                <button type="submit">⬆️ อัปโหลดไฟล์ถาวรไป Cloud</button>
+                <input type="file" name="file" id="fileInput" class="input-style" required>
+                <button type="submit" class="btn"><i class="fa-solid fa-upload"></i> INJECT_FILE_TO_CLOUD</button>
+            </form>
+            <div class="progress-container" id="progressBox">
+                <div class="progress-bar" id="progressBar"></div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
+
+        <!-- CREATE FOLDER SECTION -->
+        <div class="section-box">
+            <form action="{{ url_for('create_folder') }}" method="post" style="display: flex; gap: 8px;">
+                <input type="hidden" name="subpath" value="{{ current_dir }}">
+                <input type="text" name="foldername" placeholder="NEW_DIR_NAME..." class="input-style" style="margin:0;" required>
+                <button type="submit" class="btn btn-success" style="width: auto; white-space: nowrap;"><i class="fa-solid fa-folder-plus"></i> MKDIR</button>
             </form>
         </div>
 
-        <div class="form-group">
-            <form action="{{ url_for('create_folder') }}" method="post">
-                <input type="hidden" name="subpath" value="{{ current_dir }}">
-                <input type="text" name="foldername" placeholder="ชื่อโฟลเดอร์ใหม่..." required>
-                <button type="submit" class="create-btn">📁 สร้างโฟลเดอร์</button>
-            </form>
-        </div>
-
-        <h3>รายการไฟล์ใน Cloud</h3>
-        <p style="font-size: 0.8rem; color: #888;">💡 กดค้างที่รายการเพื่อลบออกจาก Cloud</p>
+        <h3 style="font-size: 0.9rem; border-bottom: 1px solid #003311; padding-bottom: 5px;">> DIRECTORY_CONTENTS</h3>
         <ul class="file-list">
             {% for item in items %}
-                <li class="file-item" onmousedown="startPress('{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})" onmouseup="cancelPress()" onmouseleave="cancelPress()" ontouchstart="startPress('{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})" ontouchend="cancelPress()">
+                <li class="file-item" onmousedown="startPress('{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})" onmouseup="cancelPress()" ontouchstart="startPress('{{ item.name }}', {{ 'true' if item.is_dir else 'false' }})" ontouchend="cancelPress()">
                     {% if item.is_dir %}
-                        <a href="{{ url_for('index', subpath=(current_dir + '/' + item.name) if current_dir else item.name) }}" class="folder-link">📁 {{ item.name }}</a>
+                        <a href="{{ url_for('index', subpath=(current_dir + '/' + item.name) if current_dir else item.name) }}" class="file-info folder-link">
+                            <i class="fa-solid fa-folder"></i>
+                            <span class="file-name">{{ item.name }}/</span>
+                        </a>
                     {% else %}
-                        <a href="{{ url_for('download_file', filename=(current_dir + '/' + item.name) if current_dir else item.name) }}" target="_blank">📄 {{ item.name }}</a>
+                        <a href="{{ url_for('download_file', filename=(current_dir + '/' + item.name) if current_dir else item.name) }}" target="_blank" class="file-info">
+                            <i class="fa-solid fa-file-code"></i>
+                            <span class="file-name">{{ item.name }}</span>
+                        </a>
                     {% endif %}
                 </li>
             {% else %}
-                <li style="color: #999; text-align: center; padding: 20px;">ไม่มีไฟล์ในระบบ Cloud</li>
+                <li style="color: #006622; text-align: center; padding: 15px; font-size: 0.8rem;">[NO_DATA_FOUND_IN_THIS_DIRECTORY]</li>
             {% endfor %}
         </ul>
+        <div class="terminal-log">[HOLD_ITEM_TO_PURGE_DATA]</div>
     </div>
 
     <script>
+        // JS Upload with Cyber Progress Bar
+        document.getElementById('uploadForm').onsubmit = function(e) {
+            e.preventDefault();
+            var fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length === 0) return;
+
+            var formData = new FormData(this);
+            var xhr = new XMLHttpRequest();
+
+            var progressBox = document.getElementById('progressBox');
+            var progressBar = document.getElementById('progressBar');
+            var progressText = document.getElementById('progressText');
+
+            progressBox.style.display = 'block';
+
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    var percent = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.innerText = 'UPLOADING... ' + percent + '% (' + (e.loaded / (1024*1024)).toFixed(1) + 'MB)';
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status == 200) {
+                    window.location.reload();
+                } else {
+                    alert('[ERROR] TRANSMISSION_FAILED');
+                }
+            };
+
+            xhr.open('POST', this.action, true);
+            xhr.send(formData);
+        };
+
+        // Long Press Delete
         let pressTimer;
         function startPress(name, isDir) {
             pressTimer = setTimeout(() => {
-                const typeStr = isDir ? 'โฟลเดอร์' : 'ไฟล์';
-                if (confirm(`คุณต้องการลบ ${typeStr} "${name}" จาก Cloud ใช่หรือไม่?`)) {
+                const typeStr = isDir ? 'DIRECTORY' : 'FILE';
+                if (confirm(`PURGE ${typeStr} "${name}" FROM R2 STORAGE?`)) {
                     const form = document.createElement('form');
                     form.method = 'POST';
                     form.action = '{{ url_for("delete_item") }}';
@@ -108,10 +178,7 @@ HTML_TEMPLATE = '''
                 }
             }, 800);
         }
-
-        function cancelPress() {
-            clearTimeout(pressTimer);
-        }
+        function cancelPress() { clearTimeout(pressTimer); }
     </script>
 </body>
 </html>
@@ -125,13 +192,13 @@ def get_prefix(subpath=""):
 @app.route('/<path:subpath>')
 def index(subpath=""):
     if not s3_client:
-        return "กรุณาตั้งค่า Environment Variables ใน Render ให้ครบถ้วนก่อนใช้งาน"
+        return "[SYSTEM_ERROR] MISSING_R2_CREDENTIALS"
     
     prefix = get_prefix(subpath)
     try:
         response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix, Delimiter='/')
     except Exception as e:
-        return f"เกิดข้อผิดพลาดในการเชื่อมต่อ Cloudflare R2: {str(e)}"
+        return f"[SYSTEM_ERROR] CONNECT_FAILED: {str(e)}"
     
     items = []
     for p in response.get('CommonPrefixes', []):
@@ -173,7 +240,7 @@ def download_file(filename):
     obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=filename)
     return Response(
         obj['Body'].read(),
-        headers={"Content-Disposition": f"attachment; filename={os.path.basename(filename)}"}
+        headers={"Content-Disposition": f"inline; filename={os.path.basename(filename)}"}
     )
 
 @app.route('/delete', methods=['POST'])
