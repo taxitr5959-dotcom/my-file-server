@@ -26,188 +26,277 @@ HTML_TEMPLATE = '''
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[SYSTEM_TERMINAL] Cloud Drive</title>
+    <title>R2 CyberDrive - Enterprise File System</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
-        * { box-sizing: border-box; font-family: 'Courier New', Courier, monospace; }
-        body { background-color: #080b10; margin: 0; padding: 12px; color: #00ff66; text-shadow: 0 0 3px rgba(0,255,102,0.3); }
-        .card { background: #0d1117; border: 1px solid #00ff66; border-radius: 8px; padding: 16px; max-width: 550px; margin: 0 auto; box-shadow: 0 0 15px rgba(0,255,102,0.15); }
+        * { box-sizing: border-box; font-family: 'Consolas', 'Courier New', monospace; }
+        body { background-color: #05080c; margin: 0; padding: 15px; color: #00ff66; text-shadow: 0 0 2px rgba(0,255,102,0.2); }
         
-        .header { border-bottom: 1px solid #00ff66; padding-bottom: 10px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .header h2 { margin: 0; font-size: 1.1rem; letter-spacing: 1px; color: #00ff66; }
-        .status-dot { height: 10px; width: 10px; background-color: #00ff66; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #00ff66; }
+        .container { max-width: 1400px; margin: 0 auto; background: #0d1117; border: 1px solid #00ff66; border-radius: 8px; padding: 20px; box-shadow: 0 0 20px rgba(0,255,102,0.1); }
         
-        .breadcrumb { font-size: 0.85rem; margin-bottom: 14px; color: #00b347; word-break: break-all; }
-        .breadcrumb a { color: #00ff66; text-decoration: none; border-bottom: 1px dashed #00ff66; }
+        .header { border-bottom: 2px solid #00ff66; padding-bottom: 12px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 1.4rem; letter-spacing: 1px; color: #00ff66; display: flex; align-items: center; gap: 10px; }
+        
+        .nav-bar { display: flex; align-items: center; gap: 10px; background: #020406; padding: 10px 14px; border-radius: 6px; border: 1px solid #005522; margin-bottom: 15px; flex-wrap: wrap; }
+        .nav-btn { background: #002200; color: #00ff66; border: 1px solid #00ff66; padding: 6px 12px; border-radius: 4px; cursor: pointer; text-decoration: none; font-size: 0.85rem; font-weight: bold; }
+        .nav-btn:hover { background: #00ff66; color: #000; }
+        .path-display { font-size: 0.9rem; color: #00ff66; word-break: break-all; flex-grow: 1; }
 
-        .section-box { background: #040609; border: 1px solid #005522; border-radius: 6px; padding: 12px; margin-bottom: 14px; }
+        /* Drag and Drop Zone */
+        .drop-zone { border: 2px dashed #00ff66; background: rgba(0,255,102,0.02); border-radius: 6px; padding: 25px 15px; text-align: center; cursor: pointer; margin-bottom: 15px; transition: all 0.2s; }
+        .drop-zone.dragover { background: rgba(0,255,102,0.15); border-color: #ffffff; }
+        .drop-zone i { font-size: 2rem; margin-bottom: 8px; color: #00ff66; }
         
-        /* Styled File Input */
-        .file-input-wrapper { position: relative; margin-bottom: 10px; }
-        .input-style { width: 100%; padding: 10px; border: 1px solid #00aa44; border-radius: 4px; font-size: 0.85rem; background: #000; color: #00ff66; }
-        .input-style:focus { outline: none; border-color: #00ff66; box-shadow: 0 0 8px rgba(0,255,102,0.5); }
-        
-        .btn { border: 1px solid #00ff66; border-radius: 4px; padding: 10px; font-size: 0.85rem; font-weight: bold; width: 100%; cursor: pointer; transition: all 0.2s; background: #002200; color: #00ff66; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn:hover, .btn:active { background: #00ff66; color: #000; box-shadow: 0 0 10px #00ff66; }
-        .btn-success { border-color: #ffb700; color: #ffb700; background: #221800; }
-        .btn-success:hover, .btn-success:active { background: #ffb700; color: #000; box-shadow: 0 0 10px #ffb700; }
+        .action-row { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .input-text { background: #000; border: 1px solid #00aa44; color: #00ff66; padding: 8px 12px; border-radius: 4px; font-size: 0.85rem; }
+        .btn { background: #002200; border: 1px solid #00ff66; color: #00ff66; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-size: 0.85rem; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; }
+        .btn:hover { background: #00ff66; color: #000; }
+        .btn-danger { border-color: #ff3333; color: #ff3333; background: #220000; }
+        .btn-danger:hover { background: #ff3333; color: #fff; }
 
-        /* Cyber Progress Bar */
-        .progress-container { display: none; margin-top: 10px; background: #000; border: 1px solid #00ff66; border-radius: 4px; padding: 2px; position: relative; height: 22px; }
+        /* Progress Bar */
+        .progress-container { display: none; margin-bottom: 15px; background: #000; border: 1px solid #00ff66; border-radius: 4px; position: relative; height: 24px; }
         .progress-bar { width: 0%; height: 100%; background: #00ff66; transition: width 0.1s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.75rem; color: #000; font-weight: bold; line-height: 22px; text-shadow: none; top:0; left:0; }
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.8rem; color: #000; font-weight: bold; line-height: 24px; top: 0; left: 0; }
 
-        /* File List UI */
-        .file-list { list-style: none; padding: 0; margin: 0; }
-        .file-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: #000; border: 1px solid #003311; border-radius: 4px; margin-bottom: 8px; gap: 8px; }
-        .file-item:hover { border-color: #00ff66; }
+        /* File Grid System */
+        .file-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 15px; }
+        .file-card { background: #020406; border: 1px solid #003311; border-radius: 6px; padding: 10px; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 160px; transition: border-color 0.2s; }
+        .file-card:hover { border-color: #00ff66; }
         
-        .file-main { display: flex; align-items: center; gap: 10px; text-decoration: none; color: #00ff66; flex-grow: 1; overflow: hidden; }
-        .file-name { font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .folder-link { color: #ffb700 !important; }
+        .card-select { position: absolute; top: 8px; left: 8px; z-index: 5; transform: scale(1.2); cursor: pointer; }
         
-        /* Thumbnails for images */
-        .img-thumb { width: 32px; height: 32px; object-fit: cover; border-radius: 3px; border: 1px solid #00ff66; }
+        .card-preview { height: 90px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; margin-top: 10px; }
+        .card-preview img { max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid #005522; }
+        .card-preview i { font-size: 2.8rem; color: #00ff66; }
+        .folder-icon { color: #ffb700 !important; }
+
+        .card-info { text-align: center; margin-top: 6px; }
+        .card-title { font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: #00ff66; text-decoration: none; }
         
-        /* Action Buttons */
-        .action-btns { display: flex; gap: 6px; align-items: center; }
-        .icon-btn { background: transparent; border: 1px solid #005522; color: #00ff66; padding: 6px 8px; border-radius: 3px; cursor: pointer; text-decoration: none; font-size: 0.8rem; display: inline-flex; align-items: center; justify-content: center; }
-        .icon-btn:hover { background: #00ff66; color: #000; }
-        .icon-btn-del { border-color: #ff3333; color: #ff3333; }
-        .icon-btn-del:hover { background: #ff3333; color: #fff; box-shadow: 0 0 8px #ff3333; }
+        .card-actions { display: flex; justify-content: center; gap: 8px; margin-top: 4px; }
+        .icon-btn { background: transparent; border: none; color: #00ff66; cursor: pointer; font-size: 0.85rem; padding: 4px; }
+        .icon-btn:hover { color: #fff; }
+        .icon-btn-del { color: #ff3333; }
+
+        /* Lightbox Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.92); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { max-width: 90%; max-height: 85%; object-fit: contain; border: 2px solid #00ff66; box-shadow: 0 0 20px #00ff66; }
+        .modal-nav { position: absolute; top: 50%; transform: translateY(-50%); font-size: 2.5rem; color: #00ff66; cursor: pointer; padding: 15px; background: rgba(0,0,0,0.5); border-radius: 50%; user-select: none; }
+        .modal-prev { left: 20px; }
+        .modal-next { right: 20px; }
+        .modal-close { position: absolute; top: 20px; right: 30px; font-size: 2.5rem; color: #ff3333; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="card">
+    <div class="container">
         <div class="header">
-            <h2><i class="fa-solid fa-terminal"></i> R2_VAULT // ROOT</h2>
-            <span class="status-dot"></span>
+            <h1><i class="fa-solid fa-server"></i> R2_VAULT // FILE_MANAGER</h1>
+            <div>STATUS: <span style="color:#00ff66;">ONLINE</span></div>
         </div>
-        
-        <div class="breadcrumb">
-            SYSTEM_PATH: <a href="{{ url_for('index') }}">/ROOT</a>
+
+        <!-- Path Navigation -->
+        <div class="nav-bar">
             {% if current_dir %}
-                / {{ current_dir }}
+                {% set parent_dir = current_dir.rsplit('/', 1)[0] if '/' in current_dir else '' %}
+                <a href="{{ url_for('index', subpath=parent_dir) }}" class="nav-btn"><i class="fa-solid fa-arrow-left"></i> [BACK]</a>
             {% endif %}
+            <a href="{{ url_for('index') }}" class="nav-btn"><i class="fa-solid fa-house"></i> ROOT</a>
+            <div class="path-display">PATH: /{{ current_dir }}</div>
         </div>
 
-        <!-- UPLOAD SECTION -->
-        <div class="section-box">
-            <form id="uploadForm" action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+        <!-- Drag & Drop Area -->
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click();">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <div><strong>CLICK OR DRAG & DROP FILES HERE</strong></div>
+            <div style="font-size: 0.75rem; color: #00aa44; margin-top: 4px;">รองรับการอัปโหลดหลายไฟล์พร้อมกัน (Bulk Upload Supported)</div>
+            <input type="file" id="fileInput" multiple style="display: none;" onchange="uploadFiles(this.files)">
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container" id="progressBox">
+            <div class="progress-bar" id="progressBar"></div>
+            <div class="progress-text" id="progressText">0%</div>
+        </div>
+
+        <!-- Action Bar -->
+        <div class="action-row">
+            <form action="{{ url_for('create_folder') }}" method="post" style="display: flex; gap: 6px;">
                 <input type="hidden" name="subpath" value="{{ current_dir }}">
-                <div class="file-input-wrapper">
-                    <input type="file" name="file" id="fileInput" class="input-style" required>
-                </div>
-                <button type="submit" class="btn"><i class="fa-solid fa-upload"></i> INJECT_FILE_TO_CLOUD</button>
+                <input type="text" name="foldername" placeholder="New Folder Name..." class="input-text" required>
+                <button type="submit" class="btn"><i class="fa-solid fa-folder-plus"></i> MKDIR</button>
             </form>
-            <div class="progress-container" id="progressBox">
-                <div class="progress-bar" id="progressBar"></div>
-                <div class="progress-text" id="progressText">0%</div>
-            </div>
+
+            <button onclick="deleteSelected()" class="btn btn-danger"><i class="fa-solid fa-trash"></i> DELETE SELECTED</button>
         </div>
 
-        <!-- CREATE FOLDER SECTION -->
-        <div class="section-box">
-            <form action="{{ url_for('create_folder') }}" method="post" style="display: flex; gap: 8px;">
-                <input type="hidden" name="subpath" value="{{ current_dir }}">
-                <input type="text" name="foldername" placeholder="NEW_DIR_NAME..." class="input-style" style="margin:0;" required>
-                <button type="submit" class="btn btn-success" style="width: auto; white-space: nowrap;"><i class="fa-solid fa-folder-plus"></i> MKDIR</button>
-            </form>
-        </div>
-
-        <h3 style="font-size: 0.9rem; border-bottom: 1px solid #003311; padding-bottom: 6px; margin-top: 16px;">> DIRECTORY_CONTENTS</h3>
-        <ul class="file-list">
+        <!-- File Grid -->
+        <div class="file-grid">
             {% for item in items %}
-                <li class="file-item">
+                {% set item_path = (current_dir + '/' + item.name) if current_dir else item.name %}
+                <div class="file-card">
+                    <input type="checkbox" class="card-select file-checkbox" value="{{ item_path }}">
+                    
                     {% if item.is_dir %}
-                        <a href="{{ url_for('index', subpath=(current_dir + '/' + item.name) if current_dir else item.name) }}" class="file-main folder-link">
-                            <i class="fa-solid fa-folder" style="font-size: 1.1rem;"></i>
-                            <span class="file-name">{{ item.name }}/</span>
+                        <a href="{{ url_for('index', subpath=item_path) }}" class="card-preview">
+                            <i class="fa-solid fa-folder folder-icon"></i>
                         </a>
-                        <div class="action-btns">
-                            <button onclick="deleteItem('{{ item.name }}', true)" class="icon-btn icon-btn-del" title="Delete Folder">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                        <div class="card-info">
+                            <a href="{{ url_for('index', subpath=item_path) }}" class="card-title">{{ item.name }}/</a>
                         </div>
                     {% else %}
-                        {% set file_path = (current_dir + '/' + item.name) if current_dir else item.name %}
-                        <a href="{{ url_for('file_action', filename=file_path) }}" target="_blank" class="file-main">
-                            {% if item.is_img %}
-                                <img src="{{ url_for('file_action', filename=file_path) }}" class="img-thumb" alt="thumb">
-                            {% else %}
-                                <i class="fa-solid fa-file-code" style="font-size: 1.1rem;"></i>
-                            {% endif %}
-                            <span class="file-name">{{ item.name }}</span>
-                        </a>
-                        <div class="action-btns">
-                            <a href="{{ url_for('file_action', filename=file_path, download='1') }}" class="icon-btn" title="Download File">
-                                <i class="fa-solid fa-download"></i>
+                        {% if item.is_img %}
+                            <div class="card-preview" onclick="openLightbox('{{ url_for('file_action', filename=item_path) }}')">
+                                <img src="{{ url_for('file_action', filename=item_path) }}" class="img-item" alt="preview">
+                            </div>
+                        {% else %}
+                            <a href="{{ url_for('file_action', filename=item_path) }}" target="_blank" class="card-preview">
+                                <i class="fa-solid fa-file-code"></i>
                             </a>
-                            <button onclick="deleteItem('{{ item.name }}', false)" class="icon-btn icon-btn-del" title="Delete File">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
+                        {% endif %}
+                        <div class="card-info">
+                            <a href="{{ url_for('file_action', filename=item_path) }}" target="_blank" class="card-title">{{ item.name }}</a>
                         </div>
                     {% endif %}
-                </li>
+
+                    <div class="card-actions">
+                        {% if not item.is_dir %}
+                            <a href="{{ url_for('file_action', filename=item_path, download='1') }}" class="icon-btn" title="Download">
+                                <i class="fa-solid fa-download"></i>
+                            </a>
+                        {% endif %}
+                        <button onclick="deleteSingle('{{ item_path }}')" class="icon-btn icon-btn-del" title="Delete">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
             {% else %}
-                <li style="color: #006622; text-align: center; padding: 15px; font-size: 0.8rem;">[NO_DATA_FOUND_IN_THIS_DIRECTORY]</li>
+                <div style="grid-column: 1 / -1; text-align: center; color: #006622; padding: 40px;">
+                    [DIRECTORY IS EMPTY]
+                </div>
             {% endfor %}
-        </ul>
+        </div>
+    </div>
+
+    <!-- Lightbox Modal -->
+    <div class="modal" id="lightbox">
+        <span class="modal-close" onclick="closeLightbox()">&times;</span>
+        <span class="modal-nav modal-prev" onclick="changeSlide(-1)">&#10094;</span>
+        <img class="modal-content" id="modalImg">
+        <span class="modal-nav modal-next" onclick="changeSlide(1)">&#10095;</span>
     </div>
 
     <script>
-        // JS Upload Progress
-        document.getElementById('uploadForm').onsubmit = function(e) {
-            e.preventDefault();
-            var fileInput = document.getElementById('fileInput');
-            if (fileInput.files.length === 0) return;
+        const currentSubpath = "{{ current_dir }}";
 
-            var formData = new FormData(this);
-            var xhr = new XMLHttpRequest();
+        // Drag & Drop Handling
+        const dropZone = document.getElementById('dropZone');
+        ['dragenter', 'dragover'].forEach(name => {
+            dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.add('dragover'); }, false);
+        });
+        ['dragleave', 'drop'].forEach(name => {
+            dropZone.addEventListener(name, (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); }, false);
+        });
+        dropZone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            uploadFiles(dt.files);
+        });
 
-            var progressBox = document.getElementById('progressBox');
-            var progressBar = document.getElementById('progressBar');
-            var progressText = document.getElementById('progressText');
+        // Batch Upload Multiple Files
+        function uploadFiles(files) {
+            if (files.length === 0) return;
+            
+            const formData = new FormData();
+            formData.append('subpath', currentSubpath);
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            const xhr = new XMLHttpRequest();
+            const progressBox = document.getElementById('progressBox');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
 
             progressBox.style.display = 'block';
 
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
-                    var percent = Math.round((e.loaded / e.total) * 100);
+                    const percent = Math.round((e.loaded / e.total) * 100);
                     progressBar.style.width = percent + '%';
-                    progressText.innerText = 'UPLOADING... ' + percent + '% (' + (e.loaded / (1024*1024)).toFixed(1) + 'MB)';
+                    progressText.innerText = `UPLOADING ${files.length} FILES... ${percent}% (${(e.loaded / (1024*1024)).toFixed(1)}MB)`;
                 }
             };
 
             xhr.onload = function() {
-                if (xhr.status == 200) {
+                if (xhr.status === 200) {
                     window.location.reload();
                 } else {
-                    alert('[ERROR] TRANSMISSION_FAILED');
+                    alert('[ERROR] UPLOAD FAILED');
                 }
             };
 
-            xhr.open('POST', this.action, true);
+            xhr.open('POST', '{{ url_for("upload_files") }}', true);
             xhr.send(formData);
-        };
+        }
 
-        // Delete Function
-        function deleteItem(name, isDir) {
-            const typeStr = isDir ? 'DIRECTORY' : 'FILE';
-            if (confirm(`PURGE ${typeStr} "${name}" FROM R2 STORAGE?`)) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '{{ url_for("delete_item") }}';
-                
-                const pathInput = document.createElement('input');
-                pathInput.type = 'hidden';
-                pathInput.name = 'item_path';
-                pathInput.value = '{{ (current_dir + "/" if current_dir else "") }}' + name;
-                
-                form.appendChild(pathInput);
-                document.body.appendChild(form);
-                form.submit();
+        // Delete Single / Multiple Items
+        function deleteSingle(path) {
+            if (confirm(`Delete "${path}"?`)) {
+                sendDeleteRequest([path]);
             }
+        }
+
+        function deleteSelected() {
+            const checkedBoxes = document.querySelectorAll('.file-checkbox:checked');
+            const paths = Array.from(checkedBoxes).map(cb => cb.value);
+            if (paths.length === 0) {
+                alert('โปรดเลือกไฟล์หรือโฟลเดอร์ที่ต้องการลบ');
+                return;
+            }
+            if (confirm(`Delete ${paths.length} selected item(s)?`)) {
+                sendDeleteRequest(paths);
+            }
+        }
+
+        function sendDeleteRequest(paths) {
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ url_for("delete_items") }}';
+            
+            paths.forEach(p => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'item_paths';
+                input.value = p;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Lightbox Image Viewer Logic
+        let imgList = [];
+        let currentIndex = 0;
+
+        document.addEventListener("DOMContentLoaded", () => {
+            imgList = Array.from(document.querySelectorAll('.img-item')).map(img => img.src);
+        });
+
+        function openLightbox(src) {
+            currentIndex = imgList.indexOf(src);
+            document.getElementById('modalImg').src = src;
+            document.getElementById('lightbox').style.display = 'flex';
+        }
+
+        function closeLightbox() {
+            document.getElementById('lightbox').style.display = 'none';
+        }
+
+        function changeSlide(direction) {
+            if (imgList.length === 0) return;
+            currentIndex = (currentIndex + direction + imgList.length) % imgList.length;
+            document.getElementById('modalImg').src = imgList[currentIndex];
         }
     </script>
 </body>
@@ -231,13 +320,11 @@ def index(subpath=""):
         return f"[SYSTEM_ERROR] CONNECT_FAILED: {str(e)}"
     
     items = []
-    # Folders
     for p in response.get('CommonPrefixes', []):
         folder_name = p['Prefix'][len(prefix):].strip('/')
         if folder_name:
             items.append({'name': folder_name, 'is_dir': True, 'is_img': False})
             
-    # Files
     img_exts = ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp')
     for obj in response.get('Contents', []):
         file_name = obj['Key'][len(prefix):]
@@ -248,17 +335,18 @@ def index(subpath=""):
     return render_template_string(HTML_TEMPLATE, items=items, current_dir=subpath)
 
 @app.route('/upload', methods=['POST'])
-def upload_file():
+def upload_files():
     subpath = request.form.get('subpath', '')
     prefix = get_prefix(subpath)
-    if 'file' in request.files:
-        file = request.files['file']
-        if file.filename != '':
+    files = request.files.getlist('files')
+    
+    for file in files:
+        if file and file.filename != '':
             key = f"{prefix}{file.filename}"
-            # Detect MIME type
             mime_type, _ = mimetypes.guess_type(file.filename)
             extra_args = {'ContentType': mime_type} if mime_type else {}
             s3_client.upload_fileobj(file, BUCKET_NAME, key, ExtraArgs=extra_args)
+            
     return redirect(url_for('index', subpath=subpath))
 
 @app.route('/create_folder', methods=['POST'])
@@ -276,7 +364,6 @@ def file_action(filename):
     filename = filename.lstrip('/')
     obj = s3_client.get_object(Bucket=BUCKET_NAME, Key=filename)
     
-    # MIME type handling
     mime_type, _ = mimetypes.guess_type(filename)
     if not mime_type:
         mime_type = obj.get('ContentType', 'application/octet-stream')
@@ -291,15 +378,19 @@ def file_action(filename):
     )
 
 @app.route('/delete', methods=['POST'])
-def delete_item():
-    item_path = request.form.get('item_path', '').strip('/')
-    response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=item_path)
-    if 'Contents' in response:
-        delete_keys = [{'Key': obj['Key']} for obj in response['Contents']]
-        s3_client.delete_objects(Bucket=BUCKET_NAME, Delete={'Objects': delete_keys})
-        
-    parent_dir = os.path.dirname(item_path)
-    return redirect(url_for('index', subpath=parent_dir))
+def delete_items():
+    item_paths = request.form.getlist('item_paths')
+    subpath = ""
+    
+    for item_path in item_paths:
+        item_path = item_path.strip('/')
+        subpath = os.path.dirname(item_path)
+        response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=item_path)
+        if 'Contents' in response:
+            delete_keys = [{'Key': obj['Key']} for obj in response['Contents']]
+            s3_client.delete_objects(Bucket=BUCKET_NAME, Delete={'Objects': delete_keys})
+
+    return redirect(url_for('index', subpath=subpath))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
