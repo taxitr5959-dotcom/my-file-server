@@ -1,14 +1,25 @@
 import os
 import mimetypes
 import boto3
-from flask import Flask, request, redirect, url_for, render_template_string, Response
+from botocore.config import Config
+from flask import Flask, request, redirect, url_for, render_template_string, Response, jsonify
 
 app = Flask(__name__)
+
+# ตั้งค่า Max Request Size เป็น 500MB
+app.config['MAX_CONTENT_LENGTH'] = 500 * 1024 * 1024
 
 ACCOUNT_ID = os.environ.get('CF_ACCOUNT_ID')
 ACCESS_KEY = os.environ.get('CF_ACCESS_KEY')
 SECRET_KEY = os.environ.get('CF_SECRET_KEY')
 BUCKET_NAME = os.environ.get('CF_BUCKET_NAME', 'my-files')
+
+# ปรับ Config ให้ Boto3 รองรับไฟล์ใหญ่และป้องกัน Timeout
+r2_config = Config(
+    retries=dict(max_attempts=10),
+    connect_timeout=120,
+    read_timeout=120
+)
 
 s3_client = None
 if ACCOUNT_ID and ACCESS_KEY and SECRET_KEY:
@@ -17,7 +28,8 @@ if ACCOUNT_ID and ACCESS_KEY and SECRET_KEY:
         endpoint_url=f'https://{ACCOUNT_ID}.r2.cloudflarestorage.com',
         aws_access_key_id=ACCESS_KEY,
         aws_secret_access_key=SECRET_KEY,
-        region_name='auto'
+        region_name='auto',
+        config=r2_config
     )
 
 HTML_TEMPLATE = '''
@@ -34,17 +46,17 @@ HTML_TEMPLATE = '''
         
         .page-wrapper { min-height: 100vh; padding: 10px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a16 0%, #020205 100%); }
         
-        /* กรอบนอกสุดเป็นสีเขียวนีออน (#00ff66) ตามขอ */
+        /* กรอบนอกสุดบังคับเป็นสีเขียวนีออน (#00ff66) */
         .container { 
             flex: 1; 
             max-width: 1400px; 
             width: 100%; 
             margin: 0 auto; 
             background: rgba(10, 10, 20, 0.95); 
-            border: 2px solid #00ff66; 
+            border: 3px solid #00ff66 !important; 
             border-radius: 10px; 
             padding: 15px; 
-            box-shadow: 0 0 15px rgba(0, 255, 102, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.1); 
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.6), inset 0 0 15px rgba(0, 255, 102, 0.2) !important; 
             display: flex; 
             flex-direction: column; 
         }
@@ -83,15 +95,15 @@ HTML_TEMPLATE = '''
         
         .btn { background: #0d001a; border: 1px solid #bd00ff; color: #bd00ff; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
         .btn:hover { background: #bd00ff; color: #fff; box-shadow: 0 0 10px #bd00ff; }
-        .btn-select { border-color: #00f0ff; color: #00f0ff; background: #001a24; }
-        .btn-select:hover { background: #00f0ff; color: #000; box-shadow: 0 0 10px #00f0ff; }
+        .btn-select { border-color: #00ff66; color: #00ff66; background: #001a0d; }
+        .btn-select:hover { background: #00ff66; color: #000; box-shadow: 0 0 10px #00ff66; }
         .btn-danger { border-color: #ff0055; color: #ff0055; background: #1a000d; }
         .btn-danger:hover { background: #ff0055; color: #fff; box-shadow: 0 0 10px #ff0055; }
 
         /* Progress Bar */
-        .progress-container { display: none; margin-bottom: 12px; background: #000; border: 2px solid #ff6600; border-radius: 6px; position: relative; height: 26px; overflow: hidden; box-shadow: 0 0 10px rgba(255,102,0,0.3); }
+        .progress-container { display: none; margin-bottom: 12px; background: #000; border: 2px solid #00ff66; border-radius: 6px; position: relative; height: 26px; overflow: hidden; box-shadow: 0 0 10px rgba(0,255,102,0.3); }
         .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00ff66, #00f0ff); transition: width 0.1s; }
-        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.85rem; color: #ff0055; font-weight: 900; line-height: 24px; top: 0; left: 0; text-shadow: 0 0 3px #000, 0 0 8px #fff; z-index: 10; }
+        .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.85rem; color: #fff; font-weight: 900; line-height: 24px; top: 0; left: 0; text-shadow: 0 0 4px #000; z-index: 10; }
 
         /* View Mode Switcher Controls */
         .view-switchers { display: flex; gap: 4px; background: #000; border: 1px solid #ff6600; border-radius: 4px; padding: 2px; }
@@ -99,12 +111,12 @@ HTML_TEMPLATE = '''
         .view-btn.active { background: #ff6600; color: #000; box-shadow: 0 0 8px #ff6600; }
 
         /* Content Area Container */
-        .content-area { flex: 1; border: 1px solid #330066; border-radius: 6px; padding: 12px; background: rgba(3, 3, 10, 0.8); min-height: 320px; }
+        .content-area { flex: 1; border: 1px solid #00ff66; border-radius: 6px; padding: 12px; background: rgba(3, 3, 10, 0.8); min-height: 320px; }
 
         /* GRID MODE */
         .view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px; }
         .view-grid .file-card { background: #060612; border: 1px solid #bd00ff; border-radius: 6px; padding: 8px; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 165px; transition: all 0.2s; }
-        .view-grid .file-card:hover { border-color: #00f0ff; box-shadow: 0 0 12px #00f0ff; transform: translateY(-2px); }
+        .view-grid .file-card:hover { border-color: #00ff66; box-shadow: 0 0 12px #00ff66; transform: translateY(-2px); }
         .view-grid .card-preview { height: 95px; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; margin-top: 12px; }
         .view-grid .card-preview img { max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; border: 1px solid #330066; }
         .view-grid .card-preview i { font-size: 2.5rem; color: #00f0ff; text-shadow: 0 0 8px #00f0ff; }
@@ -116,7 +128,7 @@ HTML_TEMPLATE = '''
         /* LIST MODE */
         .view-list { display: flex; flex-direction: column; gap: 6px; }
         .view-list .file-card { background: #060612; border: 1px solid #330066; border-radius: 4px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; justify-content: space-between; transition: 0.2s; }
-        .view-list .file-card:hover { border-color: #ff0055; box-shadow: 0 0 10px rgba(255,0,85,0.3); background: #0c0c24; }
+        .view-list .file-card:hover { border-color: #00ff66; box-shadow: 0 0 10px rgba(0,255,102,0.3); background: #0c0c24; }
         .view-list .card-preview { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
         .view-list .card-preview img { width: 32px; height: 32px; object-fit: cover; border-radius: 3px; }
         .view-list .card-preview i { font-size: 1.3rem; color: #00f0ff; }
@@ -145,13 +157,13 @@ HTML_TEMPLATE = '''
         <div class="container">
             <div class="header">
                 <h1><i class="fa-solid fa-microchip"></i> R2_CYBER_VAULT</h1>
-                <!-- วาง SYSTEM_STATUS ชิดขวาสุด -->
+                <!-- ดัน SYSTEM_STATUS ไปขวาสุด -->
                 <div class="status-container">
                     SYSTEM_STATUS: <span class="status-online">● ONLINE</span>
                 </div>
             </div>
 
-            <!-- Path Navigation (แก้ไขปุ่ม Back ไม่ให้ขึ้นหน้าขาว 404) -->
+            <!-- Path Navigation Bar -->
             <div class="nav-bar">
                 {% if parent_dir is not none %}
                     {% if parent_dir == '' %}
@@ -164,12 +176,12 @@ HTML_TEMPLATE = '''
                 <div class="path-display">PATH: /{{ current_dir }}</div>
             </div>
 
-            <!-- Drag & Drop Area -->
+            <!-- Drag & Drop Zone -->
             <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click();">
                 <i class="fa-solid fa-cloud-arrow-up"></i>
                 <div><strong>CLICK OR DRAG & DROP FILES HERE</strong></div>
                 <div style="font-size: 0.75rem; color: #ff6600; margin-top: 4px;">TARGET_DIR: /{{ current_dir if current_dir else 'ROOT' }}</div>
-                <input type="file" id="fileInput" multiple style="display: none;" onchange="uploadFiles(this.files)">
+                <input type="file" id="fileInput" multiple style="display: none;" onchange="uploadQueue(this.files)">
             </div>
 
             <!-- Progress Bar -->
@@ -178,7 +190,7 @@ HTML_TEMPLATE = '''
                 <div class="progress-text" id="progressText">UPLOADING... 0%</div>
             </div>
 
-            <!-- Action Bar & View Switcher -->
+            <!-- Action Bar -->
             <div class="action-row">
                 <div style="display: flex; gap: 6px; flex-wrap: wrap;">
                     <form action="{{ url_for('create_folder') }}" method="post" style="display: flex; gap: 6px;">
@@ -197,7 +209,7 @@ HTML_TEMPLATE = '''
                 </div>
             </div>
 
-            <!-- File Content Area -->
+            <!-- Content Area -->
             <div class="content-area">
                 <div class="view-grid" id="fileContainer">
                     {% for item in items %}
@@ -278,7 +290,6 @@ HTML_TEMPLATE = '''
             }
         }
 
-        /* ฟังก์ชันคลิกปุ่ม Select All เลือก/ยกเลิก ทั้งหมด */
         function toggleSelectAll() {
             const checkboxes = document.querySelectorAll('.file-checkbox');
             isAllSelected = !isAllSelected;
@@ -307,43 +318,52 @@ HTML_TEMPLATE = '''
         });
         dropZone.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
-            uploadFiles(dt.files);
+            uploadQueue(dt.files);
         });
 
-        function uploadFiles(files) {
+        // ระบบส่งไฟล์ทีละไฟล์เป็น Queue ช่วยแก้อาการ [ERROR] UPLOAD FAILED เวลาเลือกพร้อมกันหลายไฟล์
+        async function uploadQueue(files) {
             if (files.length === 0) return;
-            
-            const formData = new FormData();
-            formData.append('subpath', currentSubpath);
-            for (let i = 0; i < files.length; i++) {
-                formData.append('files', files[i]);
-            }
 
-            const xhr = new XMLHttpRequest();
             const progressBox = document.getElementById('progressBox');
             const progressBar = document.getElementById('progressBar');
             const progressText = document.getElementById('progressText');
 
             progressBox.style.display = 'block';
 
-            xhr.upload.onprogress = function(e) {
-                if (e.lengthComputable) {
-                    const percent = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = percent + '%';
-                    progressText.innerText = `UPLOADING ${files.length} FILE(S)... ${percent}%`;
-                }
-            };
+            let totalFiles = files.length;
+            let successCount = 0;
 
-            xhr.onload = function() {
-                if (xhr.status === 200) {
-                    window.location.reload();
-                } else {
-                    alert('[ERROR] UPLOAD FAILED');
-                }
-            };
+            for (let i = 0; i < totalFiles; i++) {
+                let file = files[i];
+                let formData = new FormData();
+                formData.append('subpath', currentSubpath);
+                formData.append('file', file);
 
-            xhr.open('POST', '{{ url_for("upload_files") }}', true);
-            xhr.send(formData);
+                progressText.innerText = `UPLOADING (${i + 1}/${totalFiles}): ${file.name}...`;
+                
+                try {
+                    let response = await fetch('{{ url_for("upload_single") }}', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        successCount++;
+                        let percent = Math.round(((i + 1) / totalFiles) * 100);
+                        progressBar.style.width = percent + '%';
+                    } else {
+                        console.error('Failed to upload', file.name);
+                    }
+                } catch (err) {
+                    console.error('Upload Error', err);
+                }
+            }
+
+            progressText.innerText = `UPLOAD COMPLETE! (${successCount}/${totalFiles})`;
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
         }
 
         function deleteSingle(path) {
@@ -413,11 +433,6 @@ def get_prefix(subpath=""):
 def index(subpath=""):
     return render_index(subpath)
 
-def index_dir(subpath=""):
-    return render_index(subpath)
-
-app.add_url_rule('/dir/<path:subpath>', 'index_dir', render_index)
-
 def render_index(subpath=""):
     if not s3_client:
         return "[SYSTEM_ERROR] MISSING_R2_CREDENTIALS"
@@ -425,7 +440,6 @@ def render_index(subpath=""):
     subpath = subpath.strip("/")
     prefix = get_prefix(subpath)
     
-    # คำนวณ Parent Dir สำหรับปุ่ม Back อย่างแม่นยำ
     parent_dir = None
     if subpath:
         if '/' in subpath:
@@ -453,20 +467,23 @@ def render_index(subpath=""):
             
     return render_template_string(HTML_TEMPLATE, items=items, current_dir=subpath, parent_dir=parent_dir)
 
-@app.route('/upload', methods=['POST'])
-def upload_files():
+@app.route('/upload_single', methods=['POST'])
+def upload_single():
     subpath = request.form.get('subpath', '').strip("/")
     prefix = get_prefix(subpath)
-    files = request.files.getlist('files')
+    file = request.files.get('file')
     
-    for file in files:
-        if file and file.filename != '':
-            key = f"{prefix}{file.filename}"
-            mime_type, _ = mimetypes.guess_type(file.filename)
-            extra_args = {'ContentType': mime_type} if mime_type else {}
+    if file and file.filename != '':
+        key = f"{prefix}{file.filename}"
+        mime_type, _ = mimetypes.guess_type(file.filename)
+        extra_args = {'ContentType': mime_type} if mime_type else {}
+        try:
             s3_client.upload_fileobj(file, BUCKET_NAME, key, ExtraArgs=extra_args)
+            return jsonify({'status': 'success'}), 200
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)}), 500
             
-    return redirect(url_for('index_dir', subpath=subpath) if subpath else url_for('index'))
+    return jsonify({'status': 'invalid'}), 400
 
 @app.route('/create_folder', methods=['POST'])
 def create_folder():
