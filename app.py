@@ -4,20 +4,21 @@ from flask import Flask, request, redirect, url_for, render_template_string, Res
 
 app = Flask(__name__)
 
-# ดึงค่าการเชื่อมต่อ Cloudflare R2 จาก Environment Variables
 ACCOUNT_ID = os.environ.get('CF_ACCOUNT_ID')
 ACCESS_KEY = os.environ.get('CF_ACCESS_KEY')
 SECRET_KEY = os.environ.get('CF_SECRET_KEY')
-BUCKET_NAME = os.environ.get('CF_BUCKET_NAME', 'ไฟล์ของฉัน')
+BUCKET_NAME = os.environ.get('CF_BUCKET_NAME', 'my-files')
 
-# เชื่อมต่อ Cloudflare R2 ผ่าน S3 Protocol
-s3_client = boto3.client(
-    's3',
-    endpoint_url=f'https://{ACCOUNT_ID}.r2.cloudflarestorage.com',
-    aws_access_key_id=ACCESS_KEY,
-    aws_secret_access_key=SECRET_KEY,
-    region_name='auto'
-) if ACCOUNT_ID else None
+# สร้าง Client เชื่อมต่อ Cloudflare R2
+s3_client = None
+if ACCOUNT_ID and ACCESS_KEY and SECRET_KEY:
+    s3_client = boto3.client(
+        's3',
+        endpoint_url=f'https://{ACCOUNT_ID}.r2.cloudflarestorage.com',
+        aws_access_key_id=ACCESS_KEY,
+        aws_secret_access_key=SECRET_KEY,
+        region_name='auto'
+    )
 
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
@@ -124,19 +125,20 @@ def get_prefix(subpath=""):
 @app.route('/<path:subpath>')
 def index(subpath=""):
     if not s3_client:
-        return "กรุณาตั้งค่า Environment Variables ใน Render ก่อนใช้งาน"
+        return "กรุณาตั้งค่า Environment Variables ใน Render ให้ครบถ้วนก่อนใช้งาน"
     
     prefix = get_prefix(subpath)
-    response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix, Delimiter='/')
+    try:
+        response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix, Delimiter='/')
+    except Exception as e:
+        return f"เกิดข้อผิดพลาดในการเชื่อมต่อ Cloudflare R2: {str(e)}"
     
     items = []
-    # เพิ่มโฟลเดอร์
     for p in response.get('CommonPrefixes', []):
         folder_name = p['Prefix'][len(prefix):].strip('/')
         if folder_name:
             items.append({'name': folder_name, 'is_dir': True})
             
-    # เพิ่มไฟล์
     for obj in response.get('Contents', []):
         file_name = obj['Key'][len(prefix):]
         if file_name and file_name != '.keep' and not file_name.endswith('/'):
@@ -177,8 +179,6 @@ def download_file(filename):
 @app.route('/delete', methods=['POST'])
 def delete_item():
     item_path = request.form.get('item_path', '').strip('/')
-    
-    # ดึงรายการภายใต้เส้นทางที่ต้องการลบ
     response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=item_path)
     if 'Contents' in response:
         delete_keys = [{'Key': obj['Key']} for obj in response['Contents']]
