@@ -32,15 +32,36 @@ HTML_TEMPLATE = '''
         * { box-sizing: border-box; font-family: 'Consolas', 'Courier New', monospace; }
         html, body { height: 100%; margin: 0; padding: 0; background-color: #030308; color: #00ff66; }
         
-        /* Layout เต็มหน้าจอ 100vh ไม่กุดเป็นกางเกงขาสั้น */
         .page-wrapper { min-height: 100vh; padding: 10px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a16 0%, #020205 100%); }
-        .container { flex: 1; max-width: 1400px; width: 100%; margin: 0 auto; background: rgba(10, 10, 20, 0.95); border: 2px solid #bd00ff; border-radius: 10px; padding: 15px; box-shadow: 0 0 15px rgba(189, 0, 255, 0.3), inset 0 0 15px rgba(0, 240, 255, 0.1); display: flex; flex-direction: column; }
         
-        /* Header & Neon Cyberpunk Colors */
-        .header { border-bottom: 2px solid #ff0055; padding-bottom: 10px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+        /* กรอบนอกสุดเป็นสีเขียวนีออน (#00ff66) ตามขอ */
+        .container { 
+            flex: 1; 
+            max-width: 1400px; 
+            width: 100%; 
+            margin: 0 auto; 
+            background: rgba(10, 10, 20, 0.95); 
+            border: 2px solid #00ff66; 
+            border-radius: 10px; 
+            padding: 15px; 
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.4), inset 0 0 15px rgba(0, 240, 255, 0.1); 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        /* Header ดัน SYSTEM_STATUS ไปขวาสุด */
+        .header { 
+            border-bottom: 2px solid #ff0055; 
+            padding-bottom: 10px; 
+            margin-bottom: 12px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            width: 100%;
+        }
         .header h1 { margin: 0; font-size: 1.2rem; letter-spacing: 1px; color: #00f0ff; text-shadow: 0 0 8px #00f0ff; display: flex; align-items: center; gap: 8px; }
         
-        /* ไฟสเตตัส ONLINE กระพริบแบบไฟเลี้ยว */
+        .status-container { font-size: 0.85rem; text-align: right; white-space: nowrap; color: #00f0ff; }
         .status-online { color: #00ff66; font-weight: bold; text-shadow: 0 0 8px #00ff66; animation: blinker 1s cubic-bezier(0.5, 0, 1, 1) infinite alternate; }
         @keyframes blinker { from { opacity: 1.0; } to { opacity: 0.15; } }
 
@@ -62,10 +83,12 @@ HTML_TEMPLATE = '''
         
         .btn { background: #0d001a; border: 1px solid #bd00ff; color: #bd00ff; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
         .btn:hover { background: #bd00ff; color: #fff; box-shadow: 0 0 10px #bd00ff; }
+        .btn-select { border-color: #00f0ff; color: #00f0ff; background: #001a24; }
+        .btn-select:hover { background: #00f0ff; color: #000; box-shadow: 0 0 10px #00f0ff; }
         .btn-danger { border-color: #ff0055; color: #ff0055; background: #1a000d; }
         .btn-danger:hover { background: #ff0055; color: #fff; box-shadow: 0 0 10px #ff0055; }
 
-        /* Progress Bar - ปรับปรุงตัวหนังสือสีแดงเด่นไม่จม */
+        /* Progress Bar */
         .progress-container { display: none; margin-bottom: 12px; background: #000; border: 2px solid #ff6600; border-radius: 6px; position: relative; height: 26px; overflow: hidden; box-shadow: 0 0 10px rgba(255,102,0,0.3); }
         .progress-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #00ff66, #00f0ff); transition: width 0.1s; }
         .progress-text { position: absolute; width: 100%; text-align: center; font-size: 0.85rem; color: #ff0055; font-weight: 900; line-height: 24px; top: 0; left: 0; text-shadow: 0 0 3px #000, 0 0 8px #fff; z-index: 10; }
@@ -78,7 +101,7 @@ HTML_TEMPLATE = '''
         /* Content Area Container */
         .content-area { flex: 1; border: 1px solid #330066; border-radius: 6px; padding: 12px; background: rgba(3, 3, 10, 0.8); min-height: 320px; }
 
-        /* VIEW 1: GRID MODE (ตารางสี่เหลี่ยม Cyberpunk) */
+        /* GRID MODE */
         .view-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 12px; }
         .view-grid .file-card { background: #060612; border: 1px solid #bd00ff; border-radius: 6px; padding: 8px; position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 165px; transition: all 0.2s; }
         .view-grid .file-card:hover { border-color: #00f0ff; box-shadow: 0 0 12px #00f0ff; transform: translateY(-2px); }
@@ -90,7 +113,7 @@ HTML_TEMPLATE = '''
         .view-grid .card-title { font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; color: #00ff66; text-decoration: none; }
         .view-grid .card-actions { display: flex; justify-content: center; gap: 10px; margin-top: 2px; }
 
-        /* VIEW 2: LIST MODE (ตารางแนวนอน) */
+        /* LIST MODE */
         .view-list { display: flex; flex-direction: column; gap: 6px; }
         .view-list .file-card { background: #060612; border: 1px solid #330066; border-radius: 4px; padding: 8px 12px; display: flex; align-items: center; gap: 12px; justify-content: space-between; transition: 0.2s; }
         .view-list .file-card:hover { border-color: #ff0055; box-shadow: 0 0 10px rgba(255,0,85,0.3); background: #0c0c24; }
@@ -122,14 +145,20 @@ HTML_TEMPLATE = '''
         <div class="container">
             <div class="header">
                 <h1><i class="fa-solid fa-microchip"></i> R2_CYBER_VAULT</h1>
-                <div style="font-size: 0.85rem;">SYSTEM_STATUS: <span class="status-online">● ONLINE</span></div>
+                <!-- วาง SYSTEM_STATUS ชิดขวาสุด -->
+                <div class="status-container">
+                    SYSTEM_STATUS: <span class="status-online">● ONLINE</span>
+                </div>
             </div>
 
-            <!-- Path Navigation -->
+            <!-- Path Navigation (แก้ไขปุ่ม Back ไม่ให้ขึ้นหน้าขาว 404) -->
             <div class="nav-bar">
-                {% if current_dir %}
-                    {% set parent_dir = current_dir.rsplit('/', 1)[0] if '/' in current_dir else '' %}
-                    <a href="{{ url_for('index', subpath=parent_dir) }}" class="nav-btn"><i class="fa-solid fa-arrow-left"></i> [BACK]</a>
+                {% if parent_dir is not none %}
+                    {% if parent_dir == '' %}
+                        <a href="{{ url_for('index') }}" class="nav-btn"><i class="fa-solid fa-arrow-left"></i> [BACK]</a>
+                    {% else %}
+                        <a href="{{ url_for('index_dir', subpath=parent_dir) }}" class="nav-btn"><i class="fa-solid fa-arrow-left"></i> [BACK]</a>
+                    {% endif %}
                 {% endif %}
                 <a href="{{ url_for('index') }}" class="nav-btn"><i class="fa-solid fa-house"></i> ROOT</a>
                 <div class="path-display">PATH: /{{ current_dir }}</div>
@@ -157,6 +186,8 @@ HTML_TEMPLATE = '''
                         <input type="text" name="foldername" placeholder="New Folder Name..." class="input-text" required>
                         <button type="submit" class="btn"><i class="fa-solid fa-folder-plus"></i> MKDIR</button>
                     </form>
+                    <!-- ปุ่มเลือกทั้งหมด (SELECT ALL) -->
+                    <button onclick="toggleSelectAll()" class="btn btn-select" id="btnSelectAll"><i class="fa-solid fa-check-double"></i> SELECT ALL</button>
                     <button onclick="deleteSelected()" class="btn btn-danger"><i class="fa-solid fa-trash"></i> DELETE</button>
                 </div>
 
@@ -175,11 +206,11 @@ HTML_TEMPLATE = '''
                             <input type="checkbox" class="card-select file-checkbox" value="{{ item_path }}">
                             
                             {% if item.is_dir %}
-                                <a href="{{ url_for('index', subpath=item_path) }}" class="card-preview">
+                                <a href="{{ url_for('index_dir', subpath=item_path) }}" class="card-preview">
                                     <i class="fa-solid fa-folder folder-icon"></i>
                                 </a>
                                 <div class="card-info">
-                                    <a href="{{ url_for('index', subpath=item_path) }}" class="card-title" style="color:#ff6600;">{{ item.name }}/</a>
+                                    <a href="{{ url_for('index_dir', subpath=item_path) }}" class="card-title" style="color:#ff6600;">{{ item.name }}/</a>
                                 </div>
                             {% else %}
                                 {% if item.is_img %}
@@ -227,6 +258,7 @@ HTML_TEMPLATE = '''
 
     <script>
         const currentSubpath = "{{ current_dir }}";
+        let isAllSelected = false;
 
         function setViewMode(mode) {
             const container = document.getElementById('fileContainer');
@@ -243,6 +275,20 @@ HTML_TEMPLATE = '''
                 btnGrid.classList.add('active');
                 btnList.classList.remove('active');
                 localStorage.setItem('pref_view_mode', 'grid');
+            }
+        }
+
+        /* ฟังก์ชันคลิกปุ่ม Select All เลือก/ยกเลิก ทั้งหมด */
+        function toggleSelectAll() {
+            const checkboxes = document.querySelectorAll('.file-checkbox');
+            isAllSelected = !isAllSelected;
+            checkboxes.forEach(cb => cb.checked = isAllSelected);
+            
+            const btn = document.getElementById('btnSelectAll');
+            if (isAllSelected) {
+                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> UNSELECT ALL';
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-check-double"></i> SELECT ALL';
             }
         }
 
@@ -365,10 +411,28 @@ def get_prefix(subpath=""):
 @app.route('/')
 @app.route('/dir/<path:subpath>')
 def index(subpath=""):
+    return render_index(subpath)
+
+def index_dir(subpath=""):
+    return render_index(subpath)
+
+app.add_url_rule('/dir/<path:subpath>', 'index_dir', render_index)
+
+def render_index(subpath=""):
     if not s3_client:
         return "[SYSTEM_ERROR] MISSING_R2_CREDENTIALS"
     
+    subpath = subpath.strip("/")
     prefix = get_prefix(subpath)
+    
+    # คำนวณ Parent Dir สำหรับปุ่ม Back อย่างแม่นยำ
+    parent_dir = None
+    if subpath:
+        if '/' in subpath:
+            parent_dir = subpath.rsplit('/', 1)[0]
+        else:
+            parent_dir = ''
+            
     try:
         response = s3_client.list_objects_v2(Bucket=BUCKET_NAME, Prefix=prefix, Delimiter='/')
     except Exception as e:
@@ -387,11 +451,11 @@ def index(subpath=""):
             is_img = file_name.lower().endswith(img_exts)
             items.append({'name': file_name, 'is_dir': False, 'is_img': is_img})
             
-    return render_template_string(HTML_TEMPLATE, items=items, current_dir=subpath)
+    return render_template_string(HTML_TEMPLATE, items=items, current_dir=subpath, parent_dir=parent_dir)
 
 @app.route('/upload', methods=['POST'])
 def upload_files():
-    subpath = request.form.get('subpath', '')
+    subpath = request.form.get('subpath', '').strip("/")
     prefix = get_prefix(subpath)
     files = request.files.getlist('files')
     
@@ -402,17 +466,17 @@ def upload_files():
             extra_args = {'ContentType': mime_type} if mime_type else {}
             s3_client.upload_fileobj(file, BUCKET_NAME, key, ExtraArgs=extra_args)
             
-    return redirect(url_for('index', subpath=subpath) if subpath else url_for('index'))
+    return redirect(url_for('index_dir', subpath=subpath) if subpath else url_for('index'))
 
 @app.route('/create_folder', methods=['POST'])
 def create_folder():
-    subpath = request.form.get('subpath', '')
+    subpath = request.form.get('subpath', '').strip("/")
     foldername = request.form.get('foldername', '').strip()
     if foldername:
         prefix = get_prefix(subpath)
         key = f"{prefix}{foldername}/.keep"
         s3_client.put_object(Bucket=BUCKET_NAME, Key=key, Body=b'')
-    return redirect(url_for('index', subpath=subpath) if subpath else url_for('index'))
+    return redirect(url_for('index_dir', subpath=subpath) if subpath else url_for('index'))
 
 @app.route('/file/<path:filename>')
 def file_action(filename):
@@ -445,7 +509,7 @@ def delete_items():
             delete_keys = [{'Key': obj['Key']} for obj in response['Contents']]
             s3_client.delete_objects(Bucket=BUCKET_NAME, Delete={'Objects': delete_keys})
 
-    return redirect(url_for('index', subpath=subpath) if subpath else url_for('index'))
+    return redirect(url_for('index_dir', subpath=subpath) if subpath else url_for('index'))
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
